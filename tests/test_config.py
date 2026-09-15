@@ -1,0 +1,30 @@
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from config import Settings
+
+
+class SettingsTest(unittest.TestCase):
+    def test_defaults_point_to_local_data_directory(self):
+        settings = Settings()
+        self.assertEqual(settings.app_name, "ResearchGraph")
+        self.assertEqual(settings.environment, "development")
+        self.assertEqual(settings.database_path.name, "researchgraph.db")
+        self.assertEqual(settings.database_path.parent.name, "data")
+
+    def test_environment_overrides_are_supported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "custom.db"
+            with patch.dict(os.environ, {
+                "RESEARCHGRAPH_APP_NAME": "ResearchGraph Test",
+                "RESEARCHGRAPH_ENV": "test",
+                "RESEARCHGRAPH_DB_PATH": str(database_path),
+            }, clear=False):
+                settings = Settings.from_env()
+        self.assertEqual(settings.app_name, "ResearchGraph Test")
+        self.assertEqual(settings.environment, "test")
+        self.assertEqual(settings.database_path, database_path)
+
