@@ -1,0 +1,1 @@
+"""Core ResearchGraph domain models."""
