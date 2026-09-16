@@ -14,7 +14,7 @@ class DecompositionTest(unittest.TestCase):
         self.assertEqual(len(questions), 3)
         self.assertEqual([q.position for q in questions], [1, 2, 3])
         self.assertEqual(len({q.text for q in questions}), 3)
-        self.assertTrue(all("中学生" in q.text for q in questions))
+        self.assertTrue(all(project.subject in q.text for q in questions))
 
 
 class QuestionEditingTest(unittest.TestCase):
