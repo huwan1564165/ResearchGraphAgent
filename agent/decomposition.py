@@ -26,6 +26,6 @@ def suggest_questions(project: ResearchProject) -> list[ResearchQuestion]:
         position=2,
     ), ResearchQuestion(
         id=None, project_id=project.id or 0,
-        text=f"现有证据在{focus}的长期影响、局限性和不确定性方面得出了什么结论？",
+        text=f"现有证据对{subject}在{focus}方面的长期影响、局限性和不确定性得出了什么结论？",
         position=3,
     )]
