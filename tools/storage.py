@@ -210,6 +210,46 @@ class Storage:
             ).fetchall()
         return [self._model(ResearchQuestion, row) for row in rows]
 
+    def update_question(self, question_id: int, *, text: str | None = None,
+                        position: int | None = None, status: str | None = None,
+                        is_confirmed: bool | None = None) -> ResearchQuestion | None:
+        """Update editable question fields and return the updated question."""
+        changes, values = [], []
+        for column, value in (("text", text), ("position", position),
+                              ("status", status), ("is_confirmed", is_confirmed)):
+            if value is not None:
+                changes.append(f"{column} = ?")
+                values.append(int(value) if column == "is_confirmed" else value)
+        if not changes:
+            return self._get_question(question_id)
+        changes.append("updated_at = ?")
+        values.extend([self._now(), question_id])
+        with self._connection() as connection:
+            connection.execute(f"UPDATE questions SET {', '.join(changes)} WHERE id = ?", values)
+        return self._get_question(question_id)
+
+    def _get_question(self, question_id: int) -> ResearchQuestion | None:
+        with self._connection() as connection:
+            row = connection.execute("SELECT * FROM questions WHERE id = ?", (question_id,)).fetchone()
+        return self._model(ResearchQuestion, row)
+
+    def delete_question(self, question_id: int) -> bool:
+        with self._connection() as connection:
+            cursor = connection.execute("DELETE FROM questions WHERE id = ?", (question_id,))
+        return cursor.rowcount > 0
+
+    def confirm_questions(self, project_id: int) -> int:
+        """Confirm all current questions and move the project to confirmed state."""
+        now = self._now()
+        with self._connection() as connection:
+            cursor = connection.execute(
+                "UPDATE questions SET is_confirmed = 1, status = 'confirmed', updated_at = ? WHERE project_id = ?",
+                (now, project_id),
+            )
+            connection.execute("UPDATE projects SET status = 'questions_confirmed', updated_at = ? WHERE id = ?",
+                               (now, project_id))
+        return cursor.rowcount
+
     def create_source(self, source: Source) -> Source:
         now = self._now()
         with self._connection() as connection:
