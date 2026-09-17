@@ -371,6 +371,13 @@ class Storage:
             row = connection.execute("SELECT COALESCE(MAX(version), 0) + 1 AS version FROM reports WHERE project_id = ?", (project_id,)).fetchone()
         return int(row["version"])
 
+    def list_reports(self, project_id: int) -> list[Report]:
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM reports WHERE project_id = ? ORDER BY version", (project_id,)
+            ).fetchall()
+        return [self._model(Report, row) for row in rows]
+
     def create_report(self, report: Report) -> Report:
         now = self._now()
         with self._connection() as connection:
