@@ -18,7 +18,10 @@ class WebTest(unittest.TestCase):
             }, lambda status, headers: result.update(status=status)))
         self.assertEqual(result["status"], "200 OK")
         self.assertIn("创建项目", body.decode("utf-8"))
-        self.assertIn("确认并运行研究", body.decode("utf-8"))
+        html = body.decode("utf-8")
+        self.assertIn("确认并运行研究", html)
+        self.assertIn("citation-card", html)
+        self.assertIn("line-height:1.55", html)
 
 
 if __name__ == "__main__":

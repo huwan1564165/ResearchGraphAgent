@@ -36,7 +36,7 @@ class Settings:
             app_name=os.getenv("RESEARCHGRAPH_APP_NAME", cls.app_name),
             environment=os.getenv("RESEARCHGRAPH_ENV", cls.environment),
             database_path=database_path,
-            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            openai_api_key=os.getenv("OPENAI_API_KEY") or None,
             openai_model=os.getenv("OPENAI_MODEL", cls.openai_model),
             openai_base_url=os.getenv("OPENAI_BASE_URL", cls.openai_base_url),
             search_provider=os.getenv("RESEARCHGRAPH_SEARCH_PROVIDER", cls.search_provider),
