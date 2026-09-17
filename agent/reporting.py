@@ -21,9 +21,17 @@ class ReportService:
             raise ValueError(f"Project {project_id} does not exist")
         questions = self.storage.list_questions(project_id)
         claims = self.storage.list_claims(project_id)
-        sections = [f"# {project.title}", "", "## 1. 研究问题", "", project.research_question, "", "## 2. 子问题", ""]
+        sections = [f"# {project.title}", "", "## 1. 研究问题", "", project.research_question,
+                    "", "## 2. 研究范围", "",
+                    f"- 时间范围：{project.time_range or '未指定'}",
+                    f"- 地区：{project.region or '未指定'}",
+                    f"- 研究对象：{project.subject or '未指定'}",
+                    f"- 关注重点：{project.focus or '未指定'}", "",
+                    "## 3. 子问题", ""]
         sections.extend(f"{question.position}. {question.text}" for question in questions)
-        sections.extend(["", "## 3. 主要结论", ""])
+        sections.extend(["", "## 4. 主要结论", ""])
+        if not claims:
+            sections.extend(["> ⚠️ 当前项目没有已保存的 Claim，无法形成结论。", ""])
         syntheses = []
         for claim in claims:
             synthesis = self.synthesis.synthesize_claim(claim.id)
@@ -43,7 +51,17 @@ class ReportService:
                         f"{item['excerpt']}{locator} [来源]({item['source_url']})"
                     )
                 sections.append("")
-        sections.extend(["## 4. 证据与局限性", "", "本报告仅使用已保存并关联的证据；规则式综合不替代对原始研究的质量评估。", ""])
+        sections.extend(["## 5. 证据与局限性", "", "本报告仅使用已保存并关联的证据；规则式综合不替代对原始研究的质量评估。", ""])
+        all_sources = {item.source_id: self.storage.get_source(item.source_id)
+                       for item in self.storage.list_evidence(project_id)}
+        sections.extend(["## 6. 来源列表", ""])
+        if not all_sources:
+            sections.append("暂无已保存来源。")
+        else:
+            for source_id, source in all_sources.items():
+                if source is not None:
+                    sections.append(f"- [S{source_id}] [{source.title}]({source.url})")
+        sections.append("")
         version = self.storage.next_report_version(project_id)
         report = self.storage.create_report(Report(None, project_id, version, "\n".join(sections)))
         self.storage.create_log(ResearchLog(

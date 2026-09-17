@@ -16,7 +16,9 @@ class SynthesisReportingTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.storage = Storage(Path(self.temp.name) / "db.sqlite")
         self.storage.initialize()
-        self.project = self.storage.create_project(ResearchProject(None, "测试报告", "研究问题"))
+        self.project = self.storage.create_project(ResearchProject(
+            None, "测试报告", "研究问题", time_range="2020-至今", subject="研究对象", focus="重点"
+        ))
         source = self.storage.create_source(Source(None, self.project.id, "来源", url="https://example.org"))
         self.support = self.storage.create_evidence(Evidence(None, self.project.id, source.id, None, "支持原文", stance="supports"))
         self.opposition = self.storage.create_evidence(Evidence(None, self.project.id, source.id, None, "相反原文", stance="opposes"))
@@ -42,6 +44,8 @@ class SynthesisReportingTest(unittest.TestCase):
         self.assertIn(f"[E{self.support.id}]", report.content)
         self.assertIn("来源", report.content)
         self.assertIn("https://example.org", report.content)
+        self.assertIn("时间范围：2020-至今", report.content)
+        self.assertIn("## 6. 来源列表", report.content)
         self.assertEqual(self.storage.list_logs(self.project.id)[-1].action, "report_generation")
 
 
