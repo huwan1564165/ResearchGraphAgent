@@ -14,6 +14,29 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
+def load_dotenv(path: Path | None = None) -> None:
+    """Load simple KEY=VALUE settings without adding a third-party dependency.
+
+    Existing process environment variables always win over values in ``.env``.
+    """
+    dotenv_path = path or PROJECT_ROOT / ".env"
+    if not dotenv_path.is_file():
+        return
+    for raw_line in dotenv_path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if not key or key.startswith("#"):
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        os.environ.setdefault(key, value)
+
+
 @dataclass(frozen=True)
 class Settings:
     """Runtime settings used by the application and storage layer."""
@@ -28,8 +51,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
-        """Build settings from environment variables with local defaults."""
+        """Build settings from shell variables and the optional project ``.env``."""
 
+        load_dotenv()
         configured_path = os.getenv("RESEARCHGRAPH_DB_PATH")
         database_path = Path(configured_path) if configured_path else cls.database_path
         return cls(

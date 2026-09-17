@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from config import Settings
+from config import Settings, load_dotenv
 
 
 class SettingsTest(unittest.TestCase):
@@ -14,6 +14,15 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(settings.environment, "development")
         self.assertEqual(settings.database_path.name, "researchgraph.db")
         self.assertEqual(settings.database_path.parent.name, "data")
+
+    def test_dotenv_loads_values_without_overwriting_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            dotenv = Path(directory) / ".env"
+            dotenv.write_text('OPENAI_API_KEY="from-file"\nRESEARCHGRAPH_SEARCH_PROVIDER=semantic_scholar\n', encoding="utf-8")
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "from-shell"}, clear=True):
+                load_dotenv(dotenv)
+                self.assertEqual(os.environ["OPENAI_API_KEY"], "from-shell")
+                self.assertEqual(os.environ["RESEARCHGRAPH_SEARCH_PROVIDER"], "semantic_scholar")
 
     def test_environment_overrides_are_supported(self):
         with tempfile.TemporaryDirectory() as directory:
