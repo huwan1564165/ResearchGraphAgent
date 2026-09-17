@@ -22,6 +22,7 @@ class WebTest(unittest.TestCase):
         self.assertIn("确认并运行研究", html)
         self.assertIn("citation-card", html)
         self.assertIn("line-height:1.55", html)
+        self.assertIn("项目已创建，但生成子问题失败", html)
 
 
 if __name__ == "__main__":

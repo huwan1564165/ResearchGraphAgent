@@ -39,7 +39,7 @@ class ApiApplication:
             body = self._dispatch(environ)
             status, payload = "200 OK", body
         except ValueError as error:
-            status, payload = "404 Not Found", {"error": str(error)}
+            status, payload = "400 Bad Request", {"error": str(error)}
         except (KeyError, json.JSONDecodeError) as error:
             status, payload = "400 Bad Request", {"error": f"请求参数无效：{error}"}
         except Exception as error:  # Keep the demo API response JSON shaped.
