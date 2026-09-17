@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agent.decomposition import suggest_questions
+from agent.decomposition import LLMQuestionDecomposer, suggest_questions
 from agent.evidence import EvidenceService
 from agent.reporting import ReportService
 from agent.researcher import Researcher, SearchRun
 from models.claim import Claim
 from models.project import ResearchProject
 from models.report import Report
+from tools.llm import LLMClient
 from tools.search import DemoSearchProvider, SearchProvider
 from tools.storage import Storage
 
@@ -27,8 +28,10 @@ class ResearchRunResult:
 class ResearchCoordinator:
     """Coordinate storage-backed stages without hiding individual services."""
 
-    def __init__(self, storage: Storage, provider: SearchProvider | None = None):
+    def __init__(self, storage: Storage, provider: SearchProvider | None = None,
+                 llm_client: LLMClient | None = None):
         self.storage = storage
+        self.question_decomposer = LLMQuestionDecomposer(llm_client) if llm_client else None
         self.researcher = Researcher(storage, provider or DemoSearchProvider())
         self.evidence = EvidenceService(storage)
         self.reporting = ReportService(storage)
@@ -40,7 +43,9 @@ class ResearchCoordinator:
         project = self.storage.get_project(project_id)
         if project is None:
             raise ValueError(f"Project {project_id} does not exist")
-        questions = [self.storage.create_question(item) for item in suggest_questions(project)]
+        drafts = (self.question_decomposer.suggest_questions(project)
+                  if self.question_decomposer else suggest_questions(project))
+        questions = [self.storage.create_question(item) for item in drafts]
         return [item.id for item in questions]
 
     def confirm_questions(self, project_id: int) -> int:

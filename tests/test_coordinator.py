@@ -7,6 +7,11 @@ from models.project import ResearchProject
 from tools.storage import Storage
 
 
+class FakeLLM:
+    def generate(self, prompt, *, system=None):
+        return '["LLM 子问题一", "LLM 子问题二", "LLM 子问题三"]'
+
+
 class CoordinatorTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -15,6 +20,15 @@ class CoordinatorTest(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_uses_injected_llm_for_decomposition(self):
+        coordinator = ResearchCoordinator(self.storage, llm_client=FakeLLM())
+        project = coordinator.create_project(ResearchProject(None, "LLM", "复杂问题"))
+        coordinator.decompose(project.id)
+        self.assertEqual(
+            [item.text for item in self.storage.list_questions(project.id)],
+            ["LLM 子问题一", "LLM 子问题二", "LLM 子问题三"],
+        )
 
     def test_runs_demo_flow_from_confirmed_questions_to_report(self):
         coordinator = ResearchCoordinator(self.storage)

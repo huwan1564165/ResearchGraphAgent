@@ -9,6 +9,7 @@ from urllib.parse import parse_qs
 from agent.coordinator import ResearchCoordinator
 from agent.traceability import TraceabilityService
 from models.project import ResearchProject
+from tools.llm import LLMClient
 from tools.storage import Storage
 
 
@@ -23,10 +24,10 @@ def _json_default(value: Any) -> Any:
 class ApiApplication:
     """Small WSGI application; no framework is required for the first demo."""
 
-    def __init__(self, storage: Storage):
+    def __init__(self, storage: Storage, llm_client: LLMClient | None = None):
         storage.initialize()
         self.storage = storage
-        self.coordinator = ResearchCoordinator(storage)
+        self.coordinator = ResearchCoordinator(storage, llm_client=llm_client)
         self.traceability = TraceabilityService(storage)
 
     def __call__(self, environ: dict[str, Any], start_response: Callable[..., Any]):
@@ -85,5 +86,5 @@ class ApiApplication:
         return json.loads(raw.decode("utf-8"))
 
 
-def create_app(storage: Storage) -> ApiApplication:
-    return ApiApplication(storage)
+def create_app(storage: Storage, llm_client: LLMClient | None = None) -> ApiApplication:
+    return ApiApplication(storage, llm_client)

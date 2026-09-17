@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from config import get_settings
+from tools.llm import OpenAIClient
 from tools.storage import Storage
 from web.api import create_app
 from web.ui import WebApplication
@@ -17,7 +18,12 @@ def create_storage() -> Storage:
 
 
 def create_application() -> WebApplication:
-    return WebApplication(create_app(create_storage()))
+    settings = get_settings()
+    llm_client = None
+    if settings.openai_api_key:
+        llm_client = OpenAIClient(settings.openai_api_key, settings.openai_model,
+                                  settings.openai_base_url)
+    return WebApplication(create_app(create_storage(), llm_client))
 
 
 def main() -> None:

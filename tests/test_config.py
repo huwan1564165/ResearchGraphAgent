@@ -22,9 +22,15 @@ class SettingsTest(unittest.TestCase):
                 "RESEARCHGRAPH_APP_NAME": "ResearchGraph Test",
                 "RESEARCHGRAPH_ENV": "test",
                 "RESEARCHGRAPH_DB_PATH": str(database_path),
+                "OPENAI_API_KEY": "test-key",
+                "OPENAI_MODEL": "test-model",
+                "OPENAI_BASE_URL": "https://gateway.example/v1",
             }, clear=False):
                 settings = Settings.from_env()
         self.assertEqual(settings.app_name, "ResearchGraph Test")
         self.assertEqual(settings.environment, "test")
         self.assertEqual(settings.database_path, database_path)
+        self.assertEqual(settings.openai_api_key, "test-key")
+        self.assertEqual(settings.openai_model, "test-model")
+        self.assertEqual(settings.openai_base_url, "https://gateway.example/v1")
 
