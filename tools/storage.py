@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS sources (
     published_at TEXT,
     url TEXT NOT NULL,
     abstract TEXT,
+    content TEXT,
     source_type TEXT NOT NULL DEFAULT 'web',
     authority_score REAL,
     relevance_score REAL,
@@ -150,6 +151,9 @@ class Storage:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connection() as connection:
             connection.executescript(SCHEMA)
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(sources)")}
+            if "content" not in columns:
+                connection.execute("ALTER TABLE sources ADD COLUMN content TEXT")
 
     @staticmethod
     def _now() -> str:
@@ -255,12 +259,12 @@ class Storage:
         with self._connection() as connection:
             cursor = connection.execute(
                 """INSERT INTO sources
-                (project_id, title, authors, institution, published_at, url, abstract,
+                (project_id, title, authors, institution, published_at, url, abstract, content,
                  source_type, authority_score, relevance_score, method_notes,
                  conflict_of_interest, evaluation_reason, fetched_at, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (source.project_id, source.title, source.authors, source.institution,
-                 source.published_at, source.url, source.abstract, source.source_type,
+                 source.published_at, source.url, source.abstract, source.content, source.source_type,
                  source.authority_score, source.relevance_score, source.method_notes,
                  source.conflict_of_interest, source.evaluation_reason,
                  source.fetched_at, now),
@@ -277,6 +281,22 @@ class Storage:
                 "SELECT * FROM sources WHERE project_id = ? AND url = ?", (project_id, url)
             ).fetchone()
         return self._model(Source, row)
+
+    def get_source(self, source_id: int) -> Source | None:
+        with self._connection() as connection:
+            row = connection.execute("SELECT * FROM sources WHERE id = ?", (source_id,)).fetchone()
+        return self._model(Source, row)
+
+    def list_evidence(self, project_id: int, question_id: int | None = None) -> list[Evidence]:
+        query = "SELECT * FROM evidence WHERE project_id = ?"
+        params: list[int] = [project_id]
+        if question_id is not None:
+            query += " AND question_id = ?"
+            params.append(question_id)
+        query += " ORDER BY id"
+        with self._connection() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [self._model(Evidence, row) for row in rows]
 
     def create_evidence(self, evidence: Evidence) -> Evidence:
         now = self._now()
