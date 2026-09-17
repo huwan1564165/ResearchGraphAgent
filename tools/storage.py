@@ -340,13 +340,36 @@ class Storage:
         with self._connection() as connection:
             rows = connection.execute(
                 """SELECT ce.claim_id, ce.evidence_id, ce.relation,
-                          e.source_id, e.question_id, e.excerpt, e.locator
+                          e.project_id, e.source_id, e.question_id, e.excerpt, e.locator,
+                          e.evidence_type, e.stance, e.strength, e.uncertainty,
+                          s.title AS source_title, s.url AS source_url
                    FROM claim_evidence ce
                    JOIN evidence e ON e.id = ce.evidence_id
+                   JOIN sources s ON s.id = e.source_id
                    WHERE ce.claim_id = ? ORDER BY ce.evidence_id""",
                 (claim_id,),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def get_claim(self, claim_id: int) -> Claim | None:
+        with self._connection() as connection:
+            row = connection.execute("SELECT * FROM claims WHERE id = ?", (claim_id,)).fetchone()
+        return self._model(Claim, row)
+
+    def update_claim_confidence(self, claim_id: int, confidence: float) -> Claim | None:
+        with self._connection() as connection:
+            connection.execute("UPDATE claims SET confidence = ? WHERE id = ?", (confidence, claim_id))
+        return self.get_claim(claim_id)
+
+    def list_claims(self, project_id: int) -> list[Claim]:
+        with self._connection() as connection:
+            rows = connection.execute("SELECT * FROM claims WHERE project_id = ? ORDER BY id", (project_id,)).fetchall()
+        return [self._model(Claim, row) for row in rows]
+
+    def next_report_version(self, project_id: int) -> int:
+        with self._connection() as connection:
+            row = connection.execute("SELECT COALESCE(MAX(version), 0) + 1 AS version FROM reports WHERE project_id = ?", (project_id,)).fetchone()
+        return int(row["version"])
 
     def create_report(self, report: Report) -> Report:
         now = self._now()
