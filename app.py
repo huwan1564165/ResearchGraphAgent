@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from config import get_settings
 from tools.llm import OpenAIClient
+from tools.search import DemoSearchProvider, SemanticScholarProvider
 from tools.storage import Storage
 from web.api import create_app
 from web.ui import WebApplication
@@ -23,7 +24,8 @@ def create_application() -> WebApplication:
     if settings.openai_api_key:
         llm_client = OpenAIClient(settings.openai_api_key, settings.openai_model,
                                   settings.openai_base_url)
-    return WebApplication(create_app(create_storage(), llm_client))
+    provider = SemanticScholarProvider() if settings.search_provider == "semantic_scholar" else DemoSearchProvider()
+    return WebApplication(create_app(create_storage(), llm_client, provider))
 
 
 def main() -> None:

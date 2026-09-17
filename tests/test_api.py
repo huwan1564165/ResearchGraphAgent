@@ -28,6 +28,19 @@ class ApiTest(unittest.TestCase):
         body = b"".join(self.app(environ, start_response))
         return result["status"], json.loads(body)
 
+    def test_questions_can_be_added_updated_and_deleted(self):
+        _, created = self.request("POST", "/api/projects", {"title": "编辑", "research_question": "问题"})
+        project_id = created["project"]["id"]
+        status, added = self.request("POST", f"/api/projects/{project_id}/questions/add", {"text": "新问题"})
+        self.assertEqual(status, "200 OK")
+        question_id = added["question"]["id"]
+        status, updated = self.request("PATCH", f"/api/projects/{project_id}/questions/{question_id}", {"text": "修改后"})
+        self.assertEqual(status, "200 OK")
+        self.assertEqual(updated["question"]["text"], "修改后")
+        status, deleted = self.request("DELETE", f"/api/projects/{project_id}/questions/{question_id}")
+        self.assertEqual(status, "200 OK")
+        self.assertTrue(deleted["deleted"])
+
     def test_project_questions_and_run_endpoints(self):
         status, created = self.request("POST", "/api/projects", {
             "title": "API 测试", "research_question": "测试问题"

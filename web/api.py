@@ -9,7 +9,9 @@ from urllib.parse import parse_qs
 from agent.coordinator import ResearchCoordinator
 from agent.traceability import TraceabilityService
 from models.project import ResearchProject
+from models.question import ResearchQuestion
 from tools.llm import LLMClient
+from tools.search import SearchProvider
 from tools.storage import Storage
 
 
@@ -24,10 +26,12 @@ def _json_default(value: Any) -> Any:
 class ApiApplication:
     """Small WSGI application; no framework is required for the first demo."""
 
-    def __init__(self, storage: Storage, llm_client: LLMClient | None = None):
+    def __init__(self, storage: Storage, llm_client: LLMClient | None = None,
+                 search_provider: SearchProvider | None = None):
         storage.initialize()
         self.storage = storage
-        self.coordinator = ResearchCoordinator(storage, llm_client=llm_client)
+        self.coordinator = ResearchCoordinator(storage, provider=search_provider,
+                                                llm_client=llm_client)
         self.traceability = TraceabilityService(storage)
 
     def __call__(self, environ: dict[str, Any], start_response: Callable[..., Any]):
@@ -61,6 +65,23 @@ class ApiApplication:
         project_id = int(parts[2])
         if method == "POST" and len(parts) == 4 and parts[3] == "questions":
             return {"question_ids": self.coordinator.decompose(project_id)}
+        if method == "POST" and len(parts) == 5 and parts[3] == "questions" and parts[4] == "add":
+            data = self._body(environ)
+            question = self.storage.create_question(ResearchQuestion(
+                None, project_id, str(data.get("text", "")).strip(),
+                int(data.get("position", len(self.storage.list_questions(project_id)) + 1))))
+            return {"question": question}
+        if method == "PATCH" and len(parts) == 5 and parts[3] == "questions":
+            data = self._body(environ)
+            question = self.storage.update_question(int(parts[4]), text=data.get("text"),
+                                                     position=data.get("position"))
+            if question is None or question.project_id != project_id:
+                raise ValueError("子问题不存在")
+            return {"question": question}
+        if method == "DELETE" and len(parts) == 5 and parts[3] == "questions":
+            if not self.storage.delete_question(int(parts[4])):
+                raise ValueError("子问题不存在")
+            return {"deleted": True}
         if method == "POST" and len(parts) == 5 and parts[3] == "questions" and parts[4] == "confirm":
             return {"confirmed": self.coordinator.confirm_questions(project_id)}
         if method == "POST" and len(parts) == 4 and parts[3] == "run":
@@ -86,5 +107,6 @@ class ApiApplication:
         return json.loads(raw.decode("utf-8"))
 
 
-def create_app(storage: Storage, llm_client: LLMClient | None = None) -> ApiApplication:
-    return ApiApplication(storage, llm_client)
+def create_app(storage: Storage, llm_client: LLMClient | None = None,
+               search_provider: SearchProvider | None = None) -> ApiApplication:
+    return ApiApplication(storage, llm_client, search_provider)
