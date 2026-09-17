@@ -93,6 +93,17 @@ class ApiApplication:
             if not reports:
                 raise ValueError("项目尚未生成报告")
             return {"report": reports[-1]}
+        if method == "GET" and len(parts) == 4 and parts[3] == "evidence":
+            evidence = []
+            for item in self.storage.list_evidence(project_id):
+                source = self.storage.get_source(item.source_id)
+                evidence.append({"id": item.id, "excerpt": item.excerpt,
+                                 "locator": item.locator, "evidence_type": item.evidence_type,
+                                 "stance": item.stance, "strength": item.strength,
+                                 "uncertainty": item.uncertainty, "source": {
+                                     "id": source.id, "title": source.title, "url": source.url,
+                                 } if source else None})
+            return {"evidence": evidence}
         if method == "GET" and len(parts) == 4 and parts[3] == "questions":
             return {"questions": self.storage.list_questions(project_id)}
         if method == "GET" and len(parts) == 4 and parts[3] == "trace":

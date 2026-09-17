@@ -41,6 +41,14 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assertTrue(deleted["deleted"])
 
+    def test_evidence_endpoint_returns_source_details(self):
+        _, created = self.request("POST", "/api/projects", {"title": "证据", "research_question": "问题"})
+        project_id = created["project"]["id"]
+        # The endpoint should return a stable shape even before a run creates evidence.
+        status, result = self.request("GET", f"/api/projects/{project_id}/evidence")
+        self.assertEqual(status, "200 OK")
+        self.assertEqual(result["evidence"], [])
+
     def test_project_questions_and_run_endpoints(self):
         status, created = self.request("POST", "/api/projects", {
             "title": "API 测试", "research_question": "测试问题"
