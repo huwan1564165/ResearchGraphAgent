@@ -51,7 +51,7 @@ class OpenAIClient:
 
 
 def parse_json_object(text: str) -> Any:
-    """Parse JSON, allowing models to wrap it in a markdown code fence."""
+    """Parse a JSON object or array, allowing markdown fences and surrounding prose."""
     cleaned = text.strip()
     if cleaned.startswith("```"):
         lines = cleaned.splitlines()
@@ -59,7 +59,10 @@ def parse_json_object(text: str) -> Any:
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        start, end = cleaned.find("{"), cleaned.rfind("}")
-        if start >= 0 and end > start:
+        starts = [(cleaned.find("{"), cleaned.rfind("}")),
+                  (cleaned.find("["), cleaned.rfind("]"))]
+        candidates = [(start, end) for start, end in starts if start >= 0 and end > start]
+        if candidates:
+            start, end = min(candidates, key=lambda item: item[0])
             return json.loads(cleaned[start:end + 1])
         raise

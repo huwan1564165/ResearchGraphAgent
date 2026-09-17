@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from agent.decomposition import LLMQuestionDecomposer, suggest_questions
-from agent.evidence import EvidenceService
+from agent.evidence import EvidenceService, LLMEvidenceExtractor
 from agent.reporting import ReportService
 from agent.researcher import Researcher, SearchRun
 from models.claim import Claim
@@ -33,8 +33,10 @@ class ResearchCoordinator:
         self.storage = storage
         self.question_decomposer = LLMQuestionDecomposer(llm_client) if llm_client else None
         self.researcher = Researcher(storage, provider or DemoSearchProvider())
-        self.evidence = EvidenceService(storage)
-        self.reporting = ReportService(storage)
+        self.evidence = EvidenceService(
+            storage, LLMEvidenceExtractor(llm_client) if llm_client else None
+        )
+        self.reporting = ReportService(storage, llm_client)
 
     def create_project(self, project: ResearchProject) -> ResearchProject:
         return self.storage.create_project(project)

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from models.evidence import Evidence
 from models.research_log import ResearchLog
 from models.source import Source
+from tools.llm import parse_json_object
 from tools.storage import Storage
 
 
@@ -59,8 +60,43 @@ class RuleBasedEvidenceExtractor:
         return drafts
 
 
+class LLMEvidenceExtractor:
+    """Use an LLM to classify and select verbatim evidence from a source."""
+
+    def __init__(self, client):
+        self.client = client
+
+    def extract(self, source: Source, question: str, limit: int = 3) -> list[EvidenceDraft]:
+        text = (source.content or source.abstract or "").strip()
+        if not text or limit <= 0:
+            return []
+        response = self.client.generate(
+            json.dumps({"question": question, "source_text": text, "limit": limit}, ensure_ascii=False),
+            system=("你是证据抽取助手。只从 source_text 原文中逐字选择证据，不得改写或编造。"
+                    "只返回 JSON 数组，每项含 excerpt、locator、evidence_type、stance、strength、uncertainty。"),
+        )
+        values = parse_json_object(response)
+        if not isinstance(values, list):
+            raise ValueError("LLM 证据抽取必须返回 JSON 数组")
+        drafts = []
+        for value in values[:limit]:
+            if not isinstance(value, dict) or not isinstance(value.get("excerpt"), str):
+                continue
+            excerpt = value["excerpt"].strip()
+            if not excerpt or excerpt not in text:
+                continue
+            drafts.append(EvidenceDraft(
+                excerpt=excerpt, locator=str(value.get("locator") or "原文"),
+                evidence_type=str(value.get("evidence_type") or "other"),
+                stance=str(value.get("stance") or "context"),
+                strength=str(value.get("strength") or "weak"),
+                uncertainty=str(value.get("uncertainty")) if value.get("uncertainty") else None,
+            ))
+        return drafts
+
+
 class EvidenceService:
-    def __init__(self, storage: Storage, extractor: RuleBasedEvidenceExtractor | None = None):
+    def __init__(self, storage: Storage, extractor=None):
         self.storage = storage
         self.extractor = extractor or RuleBasedEvidenceExtractor()
 

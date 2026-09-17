@@ -2,12 +2,20 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent.evidence import EvidenceService, RuleBasedEvidenceExtractor
+from agent.evidence import EvidenceService, LLMEvidenceExtractor, RuleBasedEvidenceExtractor
 from models.claim import Claim
 from models.project import ResearchProject
 from models.question import ResearchQuestion
 from models.source import Source
 from tools.storage import Storage
+
+
+class FakeLLM:
+    def __init__(self, response):
+        self.response = response
+
+    def generate(self, prompt, *, system=None):
+        return self.response
 
 
 class EvidenceTest(unittest.TestCase):
@@ -31,6 +39,17 @@ class EvidenceTest(unittest.TestCase):
         self.assertIn("12%", drafts[0].excerpt)
         self.assertTrue(drafts[0].locator)
         self.assertTrue(drafts[0].uncertainty)
+
+    def test_llm_extractor_keeps_only_verbatim_evidence(self):
+        source = Source(id=1, project_id=self.project.id, title="示例",
+                        abstract="实验结果显示数学成绩提升。长期效果尚不确定。")
+        extractor = LLMEvidenceExtractor(FakeLLM(
+            '[{"excerpt":"实验结果显示数学成绩提升。","locator":"第1句",'
+            '"evidence_type":"study_result","stance":"supports","strength":"moderate"},'
+            '{"excerpt":"模型编造的结论","locator":"第3句"}]'))
+        drafts = extractor.extract(source, "数学成绩")
+        self.assertEqual(len(drafts), 1)
+        self.assertEqual(drafts[0].stance, "supports")
 
     def test_service_saves_evidence_and_attaches_it_to_claim(self):
         source = self.storage.create_source(Source(

@@ -11,9 +11,9 @@ from tools.storage import Storage
 
 
 class ReportService:
-    def __init__(self, storage: Storage):
+    def __init__(self, storage: Storage, llm_client=None):
         self.storage = storage
-        self.synthesis = SynthesisService(storage)
+        self.synthesis = SynthesisService(storage, llm_client)
 
     def generate(self, project_id: int) -> Report:
         project = self.storage.get_project(project_id)

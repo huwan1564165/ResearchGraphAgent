@@ -11,6 +11,13 @@ from models.source import Source
 from tools.storage import Storage
 
 
+class FakeLLM:
+    def generate(self, prompt, *, system=None):
+        return ('{"conclusion":"证据支持该结论。","supporting_evidence_ids":[1],'
+                '"opposing_evidence_ids":[],"contextual_evidence_ids":[],'
+                '"confidence":0.8,"uncertainty":"仍需核查原文。"}')
+
+
 class SynthesisReportingTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -36,6 +43,12 @@ class SynthesisReportingTest(unittest.TestCase):
         self.assertEqual(result.confidence, 0.5)
         self.assertIn("不能作出确定结论", result.conclusion)
         self.assertEqual(self.storage.get_claim(self.claim.id).confidence, 0.5)
+
+    def test_llm_synthesis_validates_evidence_ids(self):
+        result = SynthesisService(self.storage, FakeLLM()).synthesize_claim(self.claim.id)
+        self.assertEqual(result.supporting_evidence_ids, [self.support.id])
+        self.assertEqual(result.opposing_evidence_ids, [])
+        self.assertEqual(result.confidence, 0.8)
 
     def test_report_is_saved_with_version_and_traceability(self):
         report = ReportService(self.storage).generate(self.project.id)
