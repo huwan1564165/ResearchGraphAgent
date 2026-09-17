@@ -48,6 +48,7 @@ class Settings:
     openai_model: str = "gpt-4o-mini"
     openai_base_url: str = "https://api.openai.com/v1"
     search_provider: str = "demo"
+    semantic_scholar_api_key: str | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -64,6 +65,7 @@ class Settings:
             openai_model=os.getenv("OPENAI_MODEL", cls.openai_model),
             openai_base_url=os.getenv("OPENAI_BASE_URL", cls.openai_base_url),
             search_provider=os.getenv("RESEARCHGRAPH_SEARCH_PROVIDER", cls.search_provider),
+            semantic_scholar_api_key=os.getenv("SEMANTIC_SCHOLAR_API_KEY") or None,
         )
 
     def ensure_data_directory(self) -> Path:

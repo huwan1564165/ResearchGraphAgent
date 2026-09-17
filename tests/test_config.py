@@ -34,6 +34,7 @@ class SettingsTest(unittest.TestCase):
                 "OPENAI_API_KEY": "test-key",
                 "OPENAI_MODEL": "test-model",
                 "OPENAI_BASE_URL": "https://gateway.example/v1",
+                "SEMANTIC_SCHOLAR_API_KEY": "search-key",
             }, clear=False):
                 settings = Settings.from_env()
         self.assertEqual(settings.app_name, "ResearchGraph Test")
@@ -42,4 +43,5 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(settings.openai_api_key, "test-key")
         self.assertEqual(settings.openai_model, "test-model")
         self.assertEqual(settings.openai_base_url, "https://gateway.example/v1")
+        self.assertEqual(settings.semantic_scholar_api_key, "search-key")
 

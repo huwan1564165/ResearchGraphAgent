@@ -4,7 +4,9 @@ from pathlib import Path
 
 from agent.researcher import Researcher
 from models.project import ResearchProject
-from tools.search import DemoSearchProvider, SourceCandidate
+from urllib.error import HTTPError
+
+from tools.search import DemoSearchProvider, FallbackSearchProvider, SourceCandidate
 from tools.storage import Storage
 
 
@@ -17,6 +19,11 @@ class DuplicateProvider:
         ][:limit]
 
 
+class ErrorProvider:
+    def search(self, query, limit=5):
+        raise HTTPError("https://example.org", 429, "Too Many Requests", {}, None)
+
+
 class SearchTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -26,6 +33,12 @@ class SearchTest(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_real_search_falls_back_when_primary_is_rate_limited(self):
+        provider = FallbackSearchProvider(ErrorProvider(), DuplicateProvider())
+        results = provider.search("测试", limit=2)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].title, "同一来源")
 
     def test_demo_provider_returns_normalized_candidates(self):
         results = DemoSearchProvider().search("中学生学习效果", limit=1)
