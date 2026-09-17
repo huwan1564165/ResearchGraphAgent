@@ -14,6 +14,7 @@ class Source:
     published_at: Optional[str] = None
     url: str = ""
     abstract: Optional[str] = None
+    content: Optional[str] = None
     source_type: str = "web"
     authority_score: Optional[float] = None
     relevance_score: Optional[float] = None
