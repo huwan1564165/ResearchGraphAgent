@@ -12,7 +12,7 @@ class DevelopmentDocumentTest(unittest.TestCase):
 
     def test_document_exists_and_has_architecture_sections(self):
         self.assertTrue(self.document_path.is_file())
-        for heading in ("## 1. 项目要解决什么问题", "## 3. 整体架构", "## 4. 主要数据对象", "## 7. 推荐项目目录"):
+        for heading in ("## 1. 项目要解决什么问题", "## 3. 整体架构", "## 4. 主要数据对象", "## 7. 当前项目目录"):
             self.assertIn(heading, self.content)
 
     def test_document_contains_all_current_development_stages(self):
