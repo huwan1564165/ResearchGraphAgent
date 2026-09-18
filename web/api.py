@@ -64,7 +64,10 @@ class ApiApplication:
             raise ValueError("接口不存在")
         project_id = int(parts[2])
         if method == "POST" and len(parts) == 4 and parts[3] == "questions":
-            return {"question_ids": self.coordinator.decompose(project_id)}
+            return {
+                "question_ids": self.coordinator.decompose(project_id),
+                "mode": "llm" if self.coordinator.question_decomposer else "rule_based",
+            }
         if method == "POST" and len(parts) == 5 and parts[3] == "questions" and parts[4] == "add":
             data = self._body(environ)
             question = self.storage.create_question(ResearchQuestion(

@@ -58,6 +58,7 @@ class ApiTest(unittest.TestCase):
         status, questions = self.request("POST", f"/api/projects/{project_id}/questions")
         self.assertEqual(status, "200 OK")
         self.assertEqual(len(questions["question_ids"]), 3)
+        self.assertEqual(questions["mode"], "rule_based")
         status, confirmed = self.request("POST", f"/api/projects/{project_id}/questions/confirm")
         self.assertEqual(confirmed["confirmed"], 3)
         status, result = self.request("POST", f"/api/projects/{project_id}/run")
