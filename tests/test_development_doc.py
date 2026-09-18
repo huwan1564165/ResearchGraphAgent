@@ -33,6 +33,15 @@ class DevelopmentDocumentTest(unittest.TestCase):
         self.assertIn("证据不足", self.content)
         self.assertIn("研究过程记录", self.content)
 
+    def test_readme_contains_user_startup_and_configuration_guidance(self):
+        readme = self.document_path.parents[0] / "README.md"
+        content = readme.read_text(encoding="utf-8")
+        self.assertIn("# ResearchGraph", content)
+        self.assertIn("python app.py", content)
+        self.assertIn("OPENAI_API_KEY", content)
+        self.assertIn("/api/projects/{id}/run", content)
+        self.assertIn("python -m unittest discover -s tests -v", content)
+
 
 if __name__ == "__main__":
     unittest.main()
