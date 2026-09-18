@@ -99,6 +99,7 @@ class EvidenceService:
     def __init__(self, storage: Storage, extractor=None):
         self.storage = storage
         self.extractor = extractor or RuleBasedEvidenceExtractor()
+        self.fallback_extractor = RuleBasedEvidenceExtractor()
 
     def extract_and_save(self, project_id: int, question_id: int, question: str,
                          source_ids: list[int], limit_per_source: int = 3) -> list[Evidence]:
@@ -107,7 +108,13 @@ class EvidenceService:
             source = self.storage.get_source(source_id)
             if source is None or source.project_id != project_id:
                 continue
-            for draft in self.extractor.extract(source, question, limit_per_source):
+            try:
+                drafts = self.extractor.extract(source, question, limit_per_source)
+            except Exception:
+                drafts = []
+            if not drafts and not isinstance(self.extractor, RuleBasedEvidenceExtractor):
+                drafts = self.fallback_extractor.extract(source, question, limit_per_source)
+            for draft in drafts:
                 saved.append(self.storage.create_evidence(Evidence(
                     id=None, project_id=project_id, source_id=source_id,
                     question_id=question_id, excerpt=draft.excerpt,

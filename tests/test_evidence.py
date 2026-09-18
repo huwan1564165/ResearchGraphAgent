@@ -18,6 +18,16 @@ class FakeLLM:
         return self.response
 
 
+class EmptyExtractor:
+    def extract(self, source, question, limit=3):
+        return []
+
+
+class FailingExtractor:
+    def extract(self, source, question, limit=3):
+        raise RuntimeError("模拟 LLM 网关失败")
+
+
 class EvidenceTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -66,3 +76,24 @@ class EvidenceTest(unittest.TestCase):
         links = self.storage.list_claim_evidence(claim.id)
         self.assertEqual(len(links), 2)
         self.assertEqual(self.storage.list_logs(self.project.id)[0].action, "evidence_extraction")
+
+    def test_service_falls_back_when_llm_returns_no_evidence(self):
+        source = self.storage.create_source(Source(
+            None, self.project.id, "示例论文", url="https://example.org/fallback",
+            abstract="实验结果显示成绩提升。长期知识保持尚不确定。",
+        ))
+        evidence = EvidenceService(self.storage, EmptyExtractor()).extract_and_save(
+            self.project.id, self.question.id, self.question.text, [source.id]
+        )
+        self.assertEqual(len(evidence), 2)
+        self.assertEqual(evidence[0].excerpt, "实验结果显示成绩提升。")
+
+    def test_service_falls_back_when_extractor_fails(self):
+        source = self.storage.create_source(Source(
+            None, self.project.id, "网关故障示例", url="https://example.org/error",
+            abstract="实验结果显示成绩提升。长期知识保持尚不确定。",
+        ))
+        evidence = EvidenceService(self.storage, FailingExtractor()).extract_and_save(
+            self.project.id, self.question.id, self.question.text, [source.id]
+        )
+        self.assertEqual(len(evidence), 2)
